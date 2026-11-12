@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 
 class GlossaryManager:
@@ -57,3 +58,27 @@ class GlossaryManager:
                 with open(mod_path, "r", encoding="utf-8-sig") as f:
                     glossary.update(json.load(f))
         return glossary
+
+
+def filter_glossary(glossary: dict, chunk_text: str) -> dict:
+    """
+    Оставляет только те термины из глоссария, которые встречаются в текущем тексте.
+    Ищет по границам слов (чтобы "Iron" не совпало с "Ironclad").
+    
+    :param glossary: Полный словарь {eng: rus}
+    :param chunk_text: Текст текущего чанка (все строки склеены)
+    :return: Отфильтрованный словарь
+    """
+    if not glossary or not chunk_text:
+        return {}
+
+    filtered = {}
+    text_lower = chunk_text.lower()
+    
+    for eng, rus in glossary.items():
+        # Экранируем спецсимволы в слове
+        pattern = r'\b' + re.escape(eng.lower()) + r'\b'
+        if re.search(pattern, text_lower):
+            filtered[eng] = rus
+            
+    return filtered

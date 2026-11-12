@@ -4,15 +4,16 @@ from .checkers import (
     extract_secure_entities,
     validate_translation,
 )
-from .glossary import GlossaryManager
+from .glossary import GlossaryManager, filter_glossary
 from .prompt_manager import PromptBuilder, PromptRegistry
 
 __all__ = [
-    "GlossaryManager", 
-    "validate_translation", 
-    "debug_ollama_response",
-    "debug_ollama_request",
-    "extract_secure_entities",
+    "GlossaryManager",
     "PromptBuilder",
-    "PromptRegistry"
+    "PromptRegistry",
+    "debug_ollama_request",
+    "debug_ollama_response",
+    "extract_secure_entities",
+    "filter_glossary",
+    "validate_translation",
 ]
