@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Модульный конвейер локализации модов</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚗️</text></svg>">
+    <!-- Tailwind CSS для стилизации -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Prism.js для красивой подсветки кода -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+    <!-- Clipboard.js для копирования -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script>
+
+
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: system-ui, sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+
+        pre,
+        code {
+            font-family: 'Fira Code', 'Consolas', monospace !important;
+            font-size: 14px !important;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- Хедер в рабочем стиле v1.2 -->
+    <header class="bg-[#1a1a1a] border-b border-[#2d2d2d] px-6 py-3 flex items-center justify-between text-sm shrink-0">
+        <div class="flex items-center gap-3">
+            <span class="text-xl">🌐</span>
+            <h1 class="font-bold tracking-wide">Localization Pipeline Lab</h1>
+            <span class="bg-[#2d2d2d] text-gray-400 text-xs px-2 py-0.5 rounded border border-[#3d3d3d]">Модель:
+                deepseek-r1:14b</span>
+        </div>
+        <nav>
+            <ul class="flex justify-center gap-1" id="menu">
+                <li>
+                    <button class="text-[#007acc] font-bold hover:text-[#37afff] cursor-pointer"
+                        data-target="tab-translate" onclick="switchTab(this)">
+                        Translate
+                    </button>
+                </li>
+                <li>
+                    <button class="font-bold hover:text-[#37afff] cursor-pointer" data-target="tab-compare"
+                        onclick="switchTab(this)">
+                        Compare
+                    </button>
+                </li>
+            </ul>
+        </nav>
+        <div class="text-gray-500 font-mono text-xs">v0.5.1</div>
+    </header>
+
+    <!-- Основной интерфейс -->
+    <main id="tab-translate" class="flex flex-1">
+
+        <!-- ЛЕВАЯ ПАНЕЛЬ (Полное соответствие вашей рабочей структуре) -->
+        <section class="w-1/3 bg-[#161616] border-r border-[#2d2d2d] p-5 flex flex-col gap-5 overflow-y-auto shrink-0">
+
+            <!-- Глоссарии -->
+            <div>
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Игровой глоссарий
+                    [Терминология]</label>
+                <select id="glossary-select"
+                    class="w-full p-2.5 bg-[#1a1a1a] border border-[#2d2d2d] rounded-lg text-sm text-gray-300 focus:outline-none focus:border-[#007acc] cursor-pointer">
+                    <option value="base.json">Загрузка глоссариев...</option>
+                </select>
+            </div>
+
+            <!-- Табы выбора формата -->
+            <div>
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Формат
+                    перевода</label>
+                <div class="flex bg-[#1a1a1a] p-1 rounded-lg border border-[#2d2d2d] gap-1">
+                    <button id="tab-json" onclick="switchFormat('json')"
+                        class="flex-1 py-2 text-xs font-medium rounded-md transition-all bg-[#007acc] text-white shadow-sm cursor-pointer">
+                        JSON
+                    </button>
+                    <button id="tab-xml" onclick="switchFormat('xml')"
+                        class="flex-1 py-2 text-xs font-medium rounded-md transition-all text-gray-400 hover:text-white cursor-pointer">
+                        XML
+                    </button>
+                    <button id="tab-text" onclick="switchFormat('text')"
+                        class="flex-1 py-2 text-xs font-medium rounded-md transition-all text-gray-400 hover:text-white cursor-pointer">
+                        TEXT
+                    </button>
+                </div>
+            </div>
+            <!-- Поле ввода локализации -->
+            <div class="flex-1 flex flex-col min-h-[200px]">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Исходный текст мода
+                    (Разметка)</label>
+                <textarea id="source-input"
+                    class="w-full flex-1 p-3 bg-[#1a1a1a] border border-[#2d2d2d] rounded-lg text-sm text-gray-200 font-mono focus:outline-none focus:border-[#007acc] resize-none"
+                    placeholder='{\n  "menu.start": "Start New Game",\n  "item.sword.desc": "A sharp iron blade."\n}'></textarea>
+            </div>
+
+            <!-- Статистика и Прогресс-бар перевода -->
+            <div id="progress-container" class="bg-[#1a1a1a] border border-[#2d2d2d] rounded-lg p-3 space-y-2">
+                <div class="flex justify-between text-xs font-mono text-gray-400">
+                    <span id="progress-status">Конвейер остановлен</span>
+                    <span id="progress-ratio">0%</span>
+                </div>
+                <div class="w-full bg-[#2d2d2d] rounded-full h-2 overflow-hidden">
+                    <div id="progress-bar" class="bg-[#007acc] h-full transition-all duration-300" style="width: 0%">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Кнопка запуска -->
+            <div class="grid gap-1 items-center">
+                <button id="translate-btn"
+                    class="w-full py-3 bg-[#007acc] hover:bg-[#0062a3] text-white font-medium rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">Запустить
+                    перевод</button>
+                <button id="translate-stop-btn" disabled
+                    class="w-full py-3 bg-gray-600 text-gray-300 font-medium rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-not-allowed mt-2">Остановить</button>
+            </div>
+        </section>
+
+        <!-- ПРАВАЯ ПАНЕЛЬ: Вывод ответа (Студия IDE) -->
+        <section class="flex-1 bg-[#1e1e1e] flex flex-col overflow-hidden relative">
+            <div
+                class="bg-[#1a1a1a] border-b border-[#2d2d2d] px-6 py-2 flex items-center justify-between shrink-0 h-[49px]">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Результат работы LLM (Финальная
+                    сборка)</span>
+                <button id="btn-copy" data-clipboard-target="#output-code"
+                    class="px-3 py-1 bg-[#2d2d2d] hover:bg-[#3d3d3d] text-gray-300 text-xs rounded border border-[#444] transition-all cursor-pointer flex items-center gap-1 z-1">
+                    📄 Копировать
+                </button>
+            </div>
+            <div class="flex-1 overflow-auto p-6 bg-[#1e1e1e]">
+                <pre
+                    class="!bg-transparent !m-0 !p-0"><code id="output-code" class="language-json">// Здесь появится полностью переведенная и восстановленная структура файла...</code></pre>
+            </div>
+        </section>
+    </main>
+
+    <!-- ВКЛАДКА СРАВНЕНИЯ -->
+    <main id="tab-compare" class="flex justify-center hidden">
+        <div class="tab-pane w-full h-full p-[20px_20px]">
+            <div class="flex gap-4 h-full">
+                <!-- Левое поле (Исходник) -->
+                <div class="flex-1 flex flex-col">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs font-bold text-gray-400 uppercase">Исходник (Оригинал)</label>
+                        <button onclick="loadLastTranslation('source')"
+                            class="text-xs text-blue-400 hover:underline">Загрузить последний исходник</button>
+                    </div>
+                    <textarea id="compare-source"
+                        class="flex-1 p-3 bg-[#0f0f0f] text-gray-300 font-mono text-sm border border-[#2d2d2d] rounded-lg resize-none"
+                        placeholder="Вставьте оригинальный JSON..."></textarea>
+                </div>
+
+                <!-- Правое поле (Перевод) -->
+                <div class="flex-1 flex flex-col">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs font-bold text-gray-400 uppercase">Перевод (Для проверки)</label>
+                        <button onclick="loadLastTranslation('target')"
+                            class="text-xs text-blue-400 hover:underline">Загрузить последний перевод</button>
+                    </div>
+                    <textarea id="compare-target"
+                        class="flex-1 p-3 bg-[#0f0f0f] text-gray-300 font-mono text-sm border border-[#2d2d2d] rounded-lg resize-none"
+                        placeholder="Вставьте переведенный JSON..."></textarea>
+                </div>
+            </div>
+
+            <!-- Кнопки и результат -->
+            <div class="mt-4">
+                <button onclick="runComparison()"
+                    class="px-6 py-2 bg-[#007acc] hover:bg-[#0062a3] text-white font-bold rounded-lg transition-all">Сравнить
+                    объекты</button>
+                <span id="compare-stats" class="ml-4 text-sm text-gray-400"></span>
+
+                <div class="mt-4 relative">
+                    <button id="btn-copy-compare" data-clipboard-target="#compare-output"
+                        class="px-3 py-1 bg-[#2d2d2d] hover:bg-[#3d3d3d] text-gray-300 text-xs rounded border border-[#444] transition-all cursor-pointer flex items-center gap-1 absolute right-0 top-0 translate-x-1 -translate-y-1 z-1">
+                        📄 Копировать
+                    </button>
+
+
+                    <div class="flex-1 overflow-auto p-6 bg-[#0f0f0f]">
+                        <pre
+                            class="!bg-transparent !m-0 !p-0"><code id="compare-output" class="language-json">// Здесь появится результат сравнения...</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="px-2 mt-auto">
+        <!-- Журнал событий конвейера (Логи) -->
+        <div class="h-44 flex flex-col shrink-0">
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">
+                Журнал событий
+                конвейера
+            </label>
+
+            <div class="relative">
+                <button id="btn-copy-log" data-clipboard-target="#log-console"
+                    class="px-3 py-1 bg-[#2d2d2d] hover:bg-[#3d3d3d] text-gray-300 text-xs rounded border border-[#444] transition-all cursor-pointer flex items-center gap-1 absolute right-0 top-0 translate-x-1 -translate-y-1 z-1">
+                    📄 Копировать
+                </button>
+
+                <div id="log-console"
+                    class="flex-1 p-3 bg-[#0f0f0f] border border-[#2d2d2d] rounded-lg font-mono text-xs text-green-400 overflow-y-auto space-y-1">
+                    <div class="text-gray-500">// Конвейер инициализирован. Ожидание файлов...</div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        let currentFormat = 'json';
+        let currentAbortController = null;
+
+        const AppState = {
+            lastSource: null,
+            lastTranslation: null
+        };
+
+        // Функция вывода логов
+        function addLog(text) {
+            const consoleDiv = document.getElementById('log-console');
+            if (!consoleDiv) return;
+            const time = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span class="text-gray-500">[${time}]</span> ${text}`;
+            consoleDiv.appendChild(logEntry);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        // Clipboard.js
+        function ClipCopy(e, id) {
+            const btn = document.querySelector(`#${id}`);
+            btn.textContent = '✓ Скопировано!';
+            setTimeout(() => { btn.textContent = '📄 Копировать'; }, 2000);
+            e.clearSelection();
+        }
+
+        const clipboardCode = new ClipboardJS('#btn-copy');
+        clipboardCode.on('success', () => clipboard(e, 'btn-copy'));
+
+        const clipboardLog = new ClipboardJS('#btn-copy-log');
+        clipboardLog.on('success', () => clipboard(e, 'btn-copy-log'));
+
+        const clipboardСompare = new ClipboardJS('#btn-copy-compare');
+        clipboardСompare.on('success', () => clipboard(e, 'btn-copy-compare'));
+
+        // Переключение табов форматов
+        function switchFormat(format) {
+            if (currentFormat === format) return;
+            currentFormat = format;
+
+            const tabJson = document.getElementById('tab-json');
+            const tabXml = document.getElementById('tab-xml');
+            const tabText = document.getElementById('tab-text');
+            const inputArea = document.getElementById('source-input');
+            const outputCode = document.getElementById('output-code');
+
+            [tabJson, tabXml, tabText].forEach(tab => {
+                tab.className = "flex-1 py-2 text-xs font-medium rounded-md transition-all text-gray-400 hover:text-white cursor-pointer";
+            });
+
+            // Подсветка активного таба
+            const activeTab = document.getElementById(`tab-${format}`);
+            activeTab.className = "flex-1 py-2 text-xs font-medium rounded-md transition-all bg-[#007acc] text-white shadow-sm cursor-pointer";
+
+            if (format === 'json') {
+                inputArea.placeholder = '{\n  "menu.start": "Start New Game",\n  "item.sword.desc": "A sharp iron blade."\n}';
+                outputCode.className = "language-json";
+                outputCode.textContent = '// Ожидание JSON данных...';
+            } else if (format === 'xml') {
+                inputArea.placeholder = '<resources>\n  <string name="menu_start">Start New Game</string>\n</resources>';
+                outputCode.className = "language-markup";
+                outputCode.textContent = '<!-- Ожидание XML данных -->';
+            } else {
+                inputArea.placeholder = 'Введите или вставьте обычный текст игрового описания.\nКаждый абзац станет отдельным чанком перевода.';
+                outputCode.className = "language-none";
+                outputCode.textContent = '// Ожидание текста...';
+            }
+            Prism.highlightElement(outputCode);
+            addLog(`Формат переключен на ${format.toUpperCase()}`);
+        }
+
+        function switchTab(clickedBtn) {
+            // 1. Получаем ID блока, который надо показать
+            const targetId = clickedBtn.getAttribute('data-target');
+
+            // 2. Скрываем ВСЕ блоки main внутри контейнера (или просто все с классом)
+            document.querySelectorAll('main').forEach(mainBlock => {
+                mainBlock.classList.add('hidden');
+                mainBlock.classList.remove('flex');
+            });
+
+            // 3. Показываем нужный блок
+            const targetBlock = document.getElementById(targetId);
+            if (targetBlock) {
+                targetBlock.classList.remove('hidden');
+                targetBlock.classList.add('flex');
+            }
+
+            // 4. Красим кнопки
+            document.querySelectorAll('#menu button').forEach(btn => {
+                // Сбрасываем стили на "неактивные"
+                btn.classList.remove('text-[#007acc]');
+                btn.classList.add('text-gray-400');
+
+                // Делаем кнопку активной
+                if (btn === clickedBtn) {
+                    btn.classList.remove('text-gray-400');
+                    btn.classList.add('text-[#007acc]');
+                }
+            });
+        }
+
+        // Автозагрузка глоссариев из API (Пути чистые без экранирования!)
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                const response = await fetch('/api/glossaries');
+                const result = await response.json();
+
+                if (result.success && result.games.length > 0) {
+                    const select = document.getElementById('glossary-select');
+                    select.innerHTML = ''; // Удаляем текст "Загрузка глоссариев..."
+
+                    result.games.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file;
+                        // Делаем красивое имя: minecraft.json -> MINECRAFT
+                        option.textContent = file.replace('.json', '').toUpperCase();
+                        select.appendChild(option);
+                    });
+                    addLog(`Найдено глоссариев в llm/games: ${result.games.length}`);
+                } else {
+                    addLog(`⚠️ Папка глоссариев пуста или base.json не найден`);
+                }
+            } catch (e) {
+                addLog(`❌ Ошибка связи с API при получении списка глоссариев`);
+                console.error(e);
+            }
+        });
+
+        // Потоковый перевод чанков (Пути чистые без экранирования!)
+        const ButtonTranslate = document.querySelector('#translate-btn');
+        const ButtonStopTranslate = document.querySelector("#translate-stop-btn");
+
+        async function runTranslationPipeline() {
+            const inputData = document.getElementById('source-input').value.trim();
+            const outputCode = document.getElementById('output-code');
+            const progressBar = document.getElementById('progress-bar');
+            const progressRatio = document.getElementById('progress-ratio');
+            const progressStatus = document.getElementById('progress-status');
+            const selectedGlossary = document.getElementById('glossary-select').value;
+
+            if (!inputData) {
+                addLog('⚠️ Ошибка: Исходный текст пуст!');
+                return;
+            }
+
+            // --- НАСТРОЙКА КНОПОК ПРИ СТАРТЕ ---
+            ButtonTranslate.disabled = true;
+            ButtonTranslate.className = "w-full py-3 bg-[#467493] text-white font-medium rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-not-allowed";
+            ButtonTranslate.innerHTML = `<span>Выполняется перевод...</span>`;
+
+            ButtonStopTranslate.disabled = false;
+            ButtonStopTranslate.className = "w-full py-3 bg-[#d32f2f] hover:bg-[#b71c1c] text-white font-medium rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer mt-2";
+
+            progressBar.style.width = '0%';
+            progressRatio.textContent = '0%';
+            progressStatus.textContent = 'Инициализация...';
+
+            document.getElementById('log-console').innerHTML = '';
+            addLog(`🔌 Подключение к потоку бэкенда...`);
+
+            // --- СОЗДАЕМ КОНТРОЛЛЕР ---
+            currentAbortController = new AbortController();
+
+            try {
+                const response = await fetch('/api/translate-stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        format: currentFormat, 
+                        data: inputData, 
+                        game: selectedGlossary
+                    }),
+                    signal: currentAbortController.signal
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let buffer = "";
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split("\n\n");
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        if (line.startsWith("data: ")) {
+                            const eventData = JSON.parse(line.substring(6));
+
+                            if (eventData.type === 'log') {
+                                addLog(eventData.text);
+                            } else if (eventData.type === 'progress') {
+                                progressBar.style.width = `${eventData.percent}%`;
+                                progressRatio.textContent = `${eventData.percent}%`;
+                                progressStatus.textContent = `Обработано строк: ${eventData.current} / ${eventData.total}`;
+                            } else if (eventData.type === 'error') {
+                                addLog(eventData.text);
+                                outputCode.textContent = `// Ошибка выполнения:\n${eventData.text}`;
+                            } else if (eventData.type === 'done') {
+                                outputCode.textContent = eventData.result;
+                                progressStatus.textContent = `Перевод успешно завершен!`;
+
+                                AppState.lastTranslation = eventData.result;
+                                AppState.lastSource = document.getElementById('source-input').value;
+
+                                addLog("💾 Результат сохранен в память для вкладки 'Сравнение'.");
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                // --- ОБРАБОТКА ОСТАНОВКИ ---
+                if (error.name === 'AbortError') {
+                    addLog(`🛑 Перевод приостановлен пользователем.`);
+                    progressStatus.textContent = `Остановлено. Можно продолжить позже.`;
+                } else {
+                    addLog(`❌ Критический сбой сетевого потока: ${error.message}`);
+                }
+            } finally {
+                // --- ВОЗВРАТ КНОПОК В ИСХОДНОЕ СОСТОЯНИЕ ---
+                ButtonTranslate.disabled = false;
+                ButtonTranslate.className = "w-full py-3 bg-[#007acc] hover:bg-[#0062a3] text-white font-medium rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer";
+                ButtonTranslate.innerHTML = `<span>Запустить конвейер перевода</span>`;
+
+                ButtonStopTranslate.disabled = true;
+                ButtonStopTranslate.className = "w-full py-3 bg-gray-600 text-gray-300 font-medium rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-not-allowed mt-2";
+
+                currentAbortController = null;
+                Prism.highlightElement(outputCode);
+            }
+        }
+
+        ButtonTranslate.addEventListener("click", () => runTranslationPipeline())
+        ButtonStopTranslate.addEventListener("click", () => {
+            if (currentAbortController) {
+                currentAbortController.abort(); // Мгновенно разрывает соединение
+            }
+        })
+
+        async function runComparison() {
+            const targetText = document.getElementById('compare-target').value;
+            const sourceText = document.getElementById('compare-source').value;
+            const outputCode = document.getElementById('compare-output');
+
+            if (!sourceText || !targetText) {
+                addLog("⚠️ Ошибка: Заполните оба поля для сравнения!");
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/compare', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source: sourceText,
+                        target: targetText
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    addLog(`❌ Ошибка сравнения: ${data.error}`);
+                    return;
+                }
+
+                addLog(`📊 Сравнение завершено. Всего строк: ${data.total_source}`);
+                addLog(`🔴 Нужно перевести: ${data.missing_count}`);
+                addLog(`🟡 Отсутствуют в оригинале: ${data.extra_count}`);
+
+                outputCode.textContent = JSON.stringify(data.missing, null, 4);
+
+                if (typeof Prism !== 'undefined') {
+                    Prism.highlightElement(outputCode);
+                }
+            } catch (error) {
+                addLog(`❌ Критический сбой compare: ${error.message}`);
+            }
+        }
+
+        function loadLastTranslation(type) {
+            if (type === 'source') {
+                if (AppState.lastSource) {
+                    document.getElementById('compare-source').value = AppState.lastSource;
+                } else {
+                    alert("Вы еще не делали перевод в этой сессии.");
+                }
+            } else {
+                if (AppState.lastTranslation) {
+                    document.getElementById('compare-target').value = AppState.lastTranslation;
+                } else {
+                    alert("Вы еще не делали перевод в этой сессии.");
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

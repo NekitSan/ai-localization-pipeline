@@ -1,0 +1,49 @@
+# Окружение и секреты
+.env
+.env.*
+!.env.example
+*.env
+*.key
+*.pem
+*.crt
+
+# Базы данных и временные файлы
+*.sqlite
+*.db
+*.log
+
+# Виртуальное окружение (Python)
+.venv/
+venv/
+env/
+
+# Кэш Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Мусор от инструментов ИИ и тестов
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Кэш линтеров/тайпчекеров
+.mypy_cache/
+.ruff_cache/
+
+# Системные и настройки IDE
+.vscode/
+.idea/
+.graph-it/
+*.swp
+*.excalidraw
+.continuerules
+.continue/
+
+# Специфика проекта (Ollama / LLM)
+app/llm/temps/
+llm/temps/
+
+# Фронтенд (Vue/Nuxt)
+node_modules/

@@ -1,0 +1,4 @@
+=== GAME RULES: VALHEIM ===
+1. The game has many compound words (e.g., "Flametal", "Blackmetal"). If no direct translation exists, create a logical compound (e.g., "Огнеметалл", "Черный металл").
+2. Do NOT translate the names of the bosses (e.g., "Eikthyr", "Moder", "Yagluth") literally. Use transliteration ("Эйктюр", "Модер", "Яглут").
+3. If a word represents a biome (e.g., "Mistlands", "Ashlands"), translate it literally ("Туманные земли", "Пепельные земли").

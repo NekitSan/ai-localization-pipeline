@@ -1,0 +1,4 @@
+=== GAME RULES: MINECRAFT ===
+- Preserve color codes (§a, §c, §r) exactly as they are.
+- Do NOT translate Vanilla item names if they are already localized in the official Russian translation (e.g., "Diamond Sword" -> "Алмазный меч").
+- Keep the 'Create' brand in English.

@@ -1,0 +1,5 @@
+=== GAME RULES: RIMWORLD ===
+1. Placeholders like {PAWN_nameDef}, {0}, {1} MUST remain exactly as they are. Do not translate or modify them.
+2. Placeholders like %s, %d MUST remain exactly as they are.
+3. Keep the logical position of placeholders. If it's "between %s and %s", translate as "между %s и %s".
+4. Do NOT translate the names of factions (e.g., "Glitterworld", "Archotech") literally if they are proper nouns. Use transliteration ("Глиттерворлд", "Архотек").
