@@ -21,7 +21,7 @@
 ### 1. **Клонируйте репозиторий:**
 
 ```bash
-git clone https://github.com/your-username/ai-localization-pipeline.git
+git clone https://github.com/NekitSan/ai-localization-pipeline.git
 cd ai-localization-pipeline
 ```
 
@@ -93,17 +93,15 @@ CHUNK_SIZE=12
 Запустите панель через bash-скрипт:
 
 ```bash
-./auto_run.sh
+python run.py
 ```
-
-(Если скрипт не запускается, выполните chmod +x auto_run.sh или запустите напрямую: python main.py)
 
 После успешного старта откройте в браузере:
 👉 **http://localhost:8000/**
 
 > **Note on development history:**
 >
-> *Проект создавался в формате R&D (Research and Development). Так как это пет-проект, я не вел строгую историю коммитов с самого начала, чтобы не тратить время на Git-рутину. Однако полная история итераций, архитектурных решений и решенных баг-кейсов зафиксирована в файле `CHANGELOG_DEV.md`.*
+> *Проект создавался в формате R&D (Research and Development). Так как это пет-проект, я не вел строгую историю коммитов с самого начала, чтобы не тратить время на Git-рутину. Однако полная история итераций, архитектурных решений и решенных баг-кейсов зафиксирована в файле `docs/CHANGELOG.md`.*
 
 ## 📝 License
 
